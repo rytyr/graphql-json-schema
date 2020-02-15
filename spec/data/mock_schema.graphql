@@ -9,7 +9,11 @@ enum MyEnum {
 }
 
 type WithDirective {
-  field_one: Int @range(min: 10)
+  field_one: Int @validate(minimum: 10)
+  field_two: Int! @validate(minimum: 10, maximum: 50)
+  field_three: String! @validate(maxLength: 8, format: "date-time")
+  field_four: String @validate(minLength: 5, pattern: "[abc]+")
+  field_five: [String] @validate(uniqueItems: true, minItems: 3)
 }
 
 type Stuff {

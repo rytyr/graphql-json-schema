@@ -1,7 +1,6 @@
 /**
  * Mapping between GQL primitive types and JSON Schema property types
  *
- * @type       {<type>}
  */
 const PRIMITIVES = {
   Int: "integer",
@@ -9,6 +8,13 @@ const PRIMITIVES = {
   String: "string",
   Boolean: "boolean",
   ID: "string"
+};
+
+const ValidationKeywords = {
+  integer: ["minimum", "maximum"],
+  number: ["minimum", "maximum"],
+  string: ["maxLength", "minLength", "pattern", "format"],
+  array: ["maxItems", "minItems", "uniqueItems"]
 };
 
 /**
@@ -37,6 +43,57 @@ const getPropertyType = type => {
   }
 };
 
+const castValueByKeyword = (keyName, value) => {
+  switch (keyName) {
+    case "minimum":
+    case "maximum":
+    case "maxLength":
+    case "minLength":
+    case "maxItems":
+    case "minItems":
+    case "minProperties":
+    case "maxProperties":
+      return Number(value);
+    case "uniqueItems":
+      return Boolean(value);
+    default:
+      return value;
+  }
+};
+
+/**
+ *
+ * transform Validation Directives into properties
+ * @param {*} directive
+ * @param {*} type
+ */
+const convertFieldDirective = (directive, type) => {
+  // only proceed for @validate
+  if (directive.name.value !== "validate") return {};
+  // otherwise
+  const allowedKeywords = ValidationKeywords[type];
+  const finalProperties = directive.arguments.reduce((acc, arg) => {
+    // bypass if arguments is not valid
+    if (allowedKeywords.includes(arg.name.value) === false) {
+      return acc;
+    }
+    // cast value based on keywords
+    const castedValueType = castValueByKeyword(arg.name.value, arg.value.value);
+    // if its number and Integer --> ROUND
+    const shouldBeRoundNumber =
+      typeof castedValueType === "number" && type === PRIMITIVES.Int;
+    const finalValueType = shouldBeRoundNumber
+      ? Math.round(castedValueType)
+      : castedValueType;
+    // put on accumulator
+    acc[arg.name.value] = finalValueType;
+    return acc;
+  }, {});
+
+  // return
+  return finalProperties;
+};
+
 /**
  * maps a GQL type field onto a JSON Schema property
  *
@@ -46,7 +103,17 @@ const getPropertyType = type => {
 const toSchemaProperty = field => {
   let propertyType = getPropertyType(field.type);
 
-  return Object.assign(propertyType, { title: field.name.value });
+  const validationProperties = field.directives.reduce(
+    (acc, el) =>
+      Object.assign(acc, convertFieldDirective(el, propertyType.type) || {}),
+    {}
+  );
+
+  return Object.assign(
+    propertyType,
+    { title: field.name.value },
+    validationProperties
+  );
 };
 
 /**
@@ -78,6 +145,7 @@ const toSchemaObject = definition => {
   /**
    * @type {Array}
    */
+
   const fields = definition.fields.map(toSchemaProperty);
 
   const properties = {};
@@ -113,7 +181,11 @@ const toSchemaObject = definition => {
 const transform = document => {
   // ignore directives
   const definitions = document.definitions
-    .filter(d => d.kind !== "DirectiveDefinition")
+    .filter(
+      d =>
+        d.kind !== "DirectiveDefinition" &&
+        d.name.value !== "StringValidationFormat"
+    )
     .map(toSchemaObject);
 
   const schema = {

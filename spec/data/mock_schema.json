@@ -31,9 +31,38 @@
       "properties": {
         "field_one": {
           "type": "integer",
-          "title": "field_one"
+          "title": "field_one",
+          "minimum": 10
+        },
+        "field_two": {
+          "type": "integer",
+          "title": "field_two",
+          "minimum": 10,
+          "maximum": 50
+        },
+        "field_three": {
+          "type": "string",
+          "title": "field_three",
+          "maxLength": 8,
+          "format": "date-time"
+        },
+        "field_four": {
+          "type": "string",
+          "title": "field_four",
+          "minLength": 5,
+          "pattern": "[abc]+"
+        },
+        "field_five": {
+          "type": "array",
+          "title": "field_five",
+          "minItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
         }
-      }
+      },
+      "required": ["field_two", "field_three"]
     },
     "Stuff": {
       "title": "Stuff",
