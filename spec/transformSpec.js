@@ -25,7 +25,7 @@ describe("GraphQL to JSON Schema transform", () => {
 
   it("parses a test GraphQL Schema properly", () => {
     const transformResult = transform(mockGraphQL);
-    console.log(JSON.stringify(transformResult, null, 4));
+    // console.log(JSON.stringify(transformResult, null, 4));
     expect(transformResult).toEqual(mockJSONSchema);
   });
 });

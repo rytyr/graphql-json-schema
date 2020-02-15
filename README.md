@@ -1,54 +1,83 @@
-# graphql-json-schema
-[![](https://travis-ci.org/jakubfiala/graphql-json-schema.svg?branch=master)](https://travis-ci.org/jakubfiala/graphql-json-schema)
+# json-schema-from-graphql
 
-Converts GraphQL Schema Language to JSON Schema
+> FORKED from https://github.com/jakubfiala/graphql-json-schema
+
+Converts GraphQL DSL into JSON Schema for validation purposes
+
+### Difference against original version
+
+- cleanup required field in a property
+- correction on structuring type definition
+- implement @validate directive for integer, number, string and array
+
+### Supported validation keywords
+
+Arguments within @validate directive follow JSON Schema validation keywords
+
+```js
+{
+  integer: ["minimum", "maximum"],
+  number: ["minimum", "maximum"],
+  string: ["maxLength", "minLength", "pattern", "format"],
+  array: ["maxItems", "minItems", "uniqueItems"]
+}
+```
 
 ## Installation
 
 ```shell
-npm install graphql-json-schema
+npm install json-schema-from-graphql
 ```
 
 ## Usage
 
 ```js
-  const transform = require('graphql-json-schema');
+const transform = require("json-schema-from-graphql");
 
-  const schema = transform(`
-    scalar Foo
+const schema = transform(`
+  scalar Foo
 
-    union MyUnion = Foo | String | Float
+  union MyUnion = Foo | String | Float
 
-    enum MyEnum {
-      FIRST_ITEM
-      SECOND_ITEM
-      THIRD_ITEM
-    }
+  enum MyEnum {
+    FIRST_ITEM
+    SECOND_ITEM
+    THIRD_ITEM
+  }
 
-    type Stuff {
-      my_field: Int
-      req_field: String!
-      recursion: MoreStuff
-      custom_scalar: Foo
-      enum: MyEnum
-    }
+  type WithDirective {
+    field_one: Int @validate(minimum: 10)
+    field_two: Int! @validate(minimum: 10, maximum: 50)
+    field_three: String! @validate(maxLength: 8, format: "date-time")
+    field_four: String @validate(minLength: 5, pattern: "[abc]+")
+    field_five: [String] @validate(uniqueItems: true, minItems: 3)
+  }
 
-    type MoreStuff {
-      first: [Float]
-      identifier: [ID]!
-      reference: Stuff!
-      bool: Boolean!
-      union: MyUnion
-      with_params(param1: Int, param2: [Float]): Int
-    }
+  type Stuff {
+    my_field: Int
+    req_field: String!
+    recursion: MoreStuff
+    custom_scalar: Foo
+    enum: MyEnum
+  }
 
-    input InputType {
-      an_int: Int!
-      a_string: String
-    }
+  type MoreStuff {
+    first: [Float]
+    identifier: [ID]!
+    reference: Stuff!
+    bool: Boolean!
+    union: MyUnion
+    with_params: Int
+  }
+
+  input InputType {
+    an_int: Int!
+    a_string: String
+  }
+
   `);
 
-  console.log(schema);
+console.log(schema);
 ```
 
 the code above prints the following JSON as a plain JS object:
@@ -69,23 +98,56 @@ the code above prints the following JSON as a plain JS object:
           "$ref": "#/definitions/Foo"
         },
         {
-          "type": "string",
-          "required": false
+          "type": "string"
         },
         {
-          "type": "number",
-          "required": false
+          "type": "number"
         }
       ]
     },
     "MyEnum": {
       "title": "MyEnum",
       "type": "GRAPHQL_ENUM",
-      "enum": [
-        "FIRST_ITEM",
-        "SECOND_ITEM",
-        "THIRD_ITEM"
-      ]
+      "enum": ["FIRST_ITEM", "SECOND_ITEM", "THIRD_ITEM"]
+    },
+    "WithDirective": {
+      "title": "WithDirective",
+      "type": "object",
+      "properties": {
+        "field_one": {
+          "type": "integer",
+          "title": "field_one",
+          "minimum": 10
+        },
+        "field_two": {
+          "type": "integer",
+          "title": "field_two",
+          "minimum": 10,
+          "maximum": 50
+        },
+        "field_three": {
+          "type": "string",
+          "title": "field_three",
+          "maxLength": 8,
+          "format": "date-time"
+        },
+        "field_four": {
+          "type": "string",
+          "title": "field_four",
+          "minLength": 5,
+          "pattern": "[abc]+"
+        },
+        "field_five": {
+          "type": "array",
+          "title": "field_five",
+          "minItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["field_two", "field_three"]
     },
     "Stuff": {
       "title": "Stuff",
@@ -93,50 +155,26 @@ the code above prints the following JSON as a plain JS object:
       "properties": {
         "my_field": {
           "type": "integer",
-          "required": false,
-          "title": "my_field",
-          "arguments": []
+          "title": "my_field"
         },
         "req_field": {
           "type": "string",
-          "required": true,
-          "title": "req_field",
-          "arguments": []
+          "title": "req_field"
         },
         "recursion": {
-          "allOf": [
-            {
-              "$ref": "#/definitions/MoreStuff"
-            },
-            {
-              "title": "recursion"
-            }
-          ]
+          "$ref": "#/definitions/MoreStuff",
+          "title": "recursion"
         },
         "custom_scalar": {
-          "allOf": [
-            {
-              "$ref": "#/definitions/Foo"
-            },
-            {
-              "title": "custom_scalar"
-            }
-          ]
+          "$ref": "#/definitions/Foo",
+          "title": "custom_scalar"
         },
         "enum": {
-          "allOf": [
-            {
-              "$ref": "#/definitions/MyEnum"
-            },
-            {
-              "title": "enum"
-            }
-          ]
+          "$ref": "#/definitions/MyEnum",
+          "title": "enum"
         }
       },
-      "required": [
-        "req_field"
-      ]
+      "required": ["req_field"]
     },
     "MoreStuff": {
       "title": "MoreStuff",
@@ -145,86 +183,35 @@ the code above prints the following JSON as a plain JS object:
         "first": {
           "type": "array",
           "items": {
-            "type": {
-              "type": "number",
-              "required": false
-            }
+            "type": "number"
           },
-          "title": "first",
-          "arguments": []
+          "title": "first"
         },
         "identifier": {
           "type": "array",
           "items": {
-            "type": {
-              "type": "string",
-              "required": false
-            }
+            "type": "string"
           },
-          "required": true,
-          "title": "identifier",
-          "arguments": []
+          "title": "identifier"
         },
         "reference": {
-          "allOf": [
-            {
-              "$ref": "#/definitions/Stuff",
-              "required": true
-            },
-            {
-              "title": "reference"
-            }
-          ]
+          "$ref": "#/definitions/Stuff",
+          "title": "reference"
         },
         "bool": {
           "type": "boolean",
-          "required": true,
-          "title": "bool",
-          "arguments": []
+          "title": "bool"
         },
         "union": {
-          "allOf": [
-            {
-              "$ref": "#/definitions/MyUnion"
-            },
-            {
-              "title": "union"
-            }
-          ]
+          "$ref": "#/definitions/MyUnion",
+          "title": "union"
         },
         "with_params": {
           "type": "integer",
-          "required": false,
-          "title": "with_params",
-          "arguments": [
-            {
-              "title": "param1",
-              "type": {
-                "type": "integer",
-                "required": false
-              },
-              "defaultValue": null
-            },
-            {
-              "title": "param2",
-              "type": {
-                "type": "array",
-                "items": {
-                  "type": {
-                    "type": "number",
-                    "required": false
-                  }
-                }
-              },
-              "defaultValue": null
-            }
-          ]
+          "title": "with_params"
         }
       },
-      "required": [
-        "identifier",
-        "bool"
-      ]
+      "required": ["identifier", "reference", "bool"]
     },
     "InputType": {
       "title": "InputType",
@@ -233,18 +220,14 @@ the code above prints the following JSON as a plain JS object:
       "properties": {
         "an_int": {
           "type": "integer",
-          "required": true,
           "title": "an_int"
         },
         "a_string": {
           "type": "string",
-          "required": false,
           "title": "a_string"
         }
       },
-      "required": [
-        "an_int"
-      ]
+      "required": ["an_int"]
     }
   }
 }
