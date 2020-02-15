@@ -6,9 +6,10 @@ Converts GraphQL DSL into JSON Schema for validation purposes
 
 ### Difference against original version
 
-- cleanup required field in a property
-- correction on structuring type definition
-- implement @validate directive for integer, number, string and array
+- [x] cleanup required field in a property
+- [x] correction on structuring type definition
+- [x] implement @validate directive on **FIELD_DEFINITION** for integer, number, string and array
+- [ ] validation on Object
 
 ### Supported validation keywords
 
