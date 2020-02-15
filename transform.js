@@ -38,27 +38,6 @@ const getPropertyType = type => {
 };
 
 /**
- * converts the GQL arguments array into a plain JSON schema array
- *
- * @param      {Array}  _arguments  The GQL arguments
- * @return     {Object}  a plain JSON array
- */
-const toFieldArguments = _arguments => {
-  return _arguments.map(a => {
-    const propertyType = getPropertyType(a.type);
-    return Object.assign(
-      {
-        title: a.name.value,
-        defaultValue: a.defaultValue || null
-      },
-      propertyType.type === "array" || propertyType.$ref
-        ? { type: propertyType }
-        : { ...propertyType }
-    );
-  });
-};
-
-/**
  * maps a GQL type field onto a JSON Schema property
  *
  * @param      {object}  field   The GQL field object
@@ -67,11 +46,7 @@ const toFieldArguments = _arguments => {
 const toSchemaProperty = field => {
   let propertyType = getPropertyType(field.type);
 
-  return Object.assign(
-    propertyType,
-    { title: field.name.value },
-    field.arguments ? { arguments: toFieldArguments(field.arguments) } : {}
-  );
+  return Object.assign(propertyType, { title: field.name.value });
 };
 
 /**

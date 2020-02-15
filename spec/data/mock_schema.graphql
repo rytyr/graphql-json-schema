@@ -8,6 +8,10 @@ enum MyEnum {
   THIRD_ITEM
 }
 
+type WithDirective {
+  field_one: Int @range(min: 10)
+}
+
 type Stuff {
   my_field: Int
   req_field: String!
@@ -22,7 +26,7 @@ type MoreStuff {
   reference: Stuff!
   bool: Boolean!
   union: MyUnion
-  with_params(param1: Int, param2: [Float]): Int
+  with_params: Int
 }
 
 input InputType {
