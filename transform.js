@@ -4,11 +4,11 @@
  * @type       {<type>}
  */
 const PRIMITIVES = {
-  Int: 'integer',
-  Float: 'number',
-  String: 'string',
-  Boolean: 'boolean',
-  ID: 'string'
+  Int: "integer",
+  Float: "number",
+  String: "string",
+  Boolean: "boolean",
+  ID: "string"
 };
 
 /**
@@ -19,27 +19,23 @@ const PRIMITIVES = {
  */
 const getPropertyType = type => {
   switch (type.kind) {
-    case 'NonNullType':
+    case "NonNullType":
       return Object.assign(getPropertyType(type.type), { required: true });
-    case 'ListType':
+    case "ListType":
       return {
-        type: 'array',
-        items: {
-          type: getPropertyType(type.type)
-        }
-      }
+        type: "array",
+        items: getPropertyType(type.type)
+      };
     default:
       if (type.name.value in PRIMITIVES) {
         return {
-          type: PRIMITIVES[type.name.value],
-          required: false
+          type: PRIMITIVES[type.name.value]
         };
-      }
-      else {
+      } else {
         return { $ref: `#/definitions/${type.name.value}` };
       }
   }
-}
+};
 
 /**
  * converts the GQL arguments array into a plain JSON schema array
@@ -49,13 +45,18 @@ const getPropertyType = type => {
  */
 const toFieldArguments = _arguments => {
   return _arguments.map(a => {
-    return {
-      title: a.name.value,
-      type: getPropertyType(a.type),
-      defaultValue: a.defaultValue
-    };
+    const propertyType = getPropertyType(a.type);
+    return Object.assign(
+      {
+        title: a.name.value,
+        defaultValue: a.defaultValue || null
+      },
+      propertyType.type === "array" || propertyType.$ref
+        ? { type: propertyType }
+        : { ...propertyType }
+    );
   });
-}
+};
 
 /**
  * maps a GQL type field onto a JSON Schema property
@@ -66,14 +67,12 @@ const toFieldArguments = _arguments => {
 const toSchemaProperty = field => {
   let propertyType = getPropertyType(field.type);
 
-  if ('$ref' in propertyType) propertyType = { allOf: [propertyType, { title: field.name.value }] };
-
   return Object.assign(
     propertyType,
     { title: field.name.value },
     field.arguments ? { arguments: toFieldArguments(field.arguments) } : {}
   );
-}
+};
 
 /**
  * Converts a single GQL definition into a plain JS schema object
@@ -82,49 +81,53 @@ const toSchemaProperty = field => {
  * @return     {Object}  A plain JS schema object
  */
 const toSchemaObject = definition => {
-  if (definition.kind === 'ScalarTypeDefinition') {
+  if (definition.kind === "ScalarTypeDefinition") {
     return {
       title: definition.name.value,
-      type: 'GRAPHQL_SCALAR'
-    }
-  }
-  else if (definition.kind === 'UnionTypeDefinition') {
+      type: "GRAPHQL_SCALAR"
+    };
+  } else if (definition.kind === "UnionTypeDefinition") {
     return {
       title: definition.name.value,
-      type: 'GRAPHQL_UNION',
+      type: "GRAPHQL_UNION",
       oneOf: definition.types.map(getPropertyType)
-    }
-  }
-  else if (definition.kind === 'EnumTypeDefinition') {
+    };
+  } else if (definition.kind === "EnumTypeDefinition") {
     return {
       title: definition.name.value,
-      type: 'GRAPHQL_ENUM',
+      type: "GRAPHQL_ENUM",
       enum: definition.values.map(v => v.name.value)
     };
   }
 
+  /**
+   * @type {Array}
+   */
   const fields = definition.fields.map(toSchemaProperty);
 
   const properties = {};
   for (let f of fields) properties[f.title] = f.allOf ? { allOf: f.allOf } : f;
 
-  const required = fields
-    .filter(f => f.required)
-    .map(f => f.title);
+  // construct required arrays
+  const required = fields.filter(f => f.required).map(f => f.title);
+
+  // remove required from fields
+  fields.forEach(val => delete val.required);
 
   let schemaObject = {
     title: definition.name.value,
-    type: 'object',
-    properties,
-    required,
+    type: "object",
+    properties
   };
 
-  if (definition.kind === 'InputObjectTypeDefinition') {
+  if (required.length > 0) schemaObject.required = required;
+
+  if (definition.kind === "InputObjectTypeDefinition") {
     Object.assign(schemaObject, { input: true });
   }
 
   return schemaObject;
-}
+};
 
 /**
  * GQL -> JSON Schema transform
@@ -135,11 +138,11 @@ const toSchemaObject = definition => {
 const transform = document => {
   // ignore directives
   const definitions = document.definitions
-    .filter(d => d.kind !== 'DirectiveDefinition')
+    .filter(d => d.kind !== "DirectiveDefinition")
     .map(toSchemaObject);
 
   const schema = {
-    $schema: 'http://json-schema.org/draft-04/schema#',
+    $schema: "http://json-schema.org/draft-04/schema#",
     definitions: {}
   };
 
