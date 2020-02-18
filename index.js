@@ -9,6 +9,9 @@ module.exports = schema => {
     /(?:type|enum|input|scalar)\s\S+\s{\s*}/gim,
     ""
   );
+  cleanedSchema = cleanedSchema.trim();
+  // empty schema should be cleaned out
+  if (cleanedSchema.length === 0) return {};
   const parsedSchema = parse(cleanedSchema, { noLocation: true });
   // console.log(schemaWithDirective);
   // console.log(JSON.stringify(parsedSchema, null, 4));

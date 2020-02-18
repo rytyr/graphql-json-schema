@@ -1,6 +1,6 @@
 {
   "name": "json-schema-from-graphql",
-  "version": "0.8.6",
+  "version": "0.8.7",
   "description": "Converts from GraphQL Schema Language into JSON Schema",
   "main": "index.js",
   "scripts": {
