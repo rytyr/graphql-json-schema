@@ -8,6 +8,10 @@ enum MyEnum {
   THIRD_ITEM
 }
 
+type query {
+
+}
+
 type WithDirective {
   field_one: Int @validate(minimum: 10)
   field_two: Int! @validate(minimum: 10, maximum: 50)
