@@ -25,11 +25,6 @@
       "type": "GRAPHQL_ENUM",
       "enum": ["FIRST_ITEM", "SECOND_ITEM", "THIRD_ITEM"]
     },
-    "query": {
-      "title": "query",
-      "type": "object",
-      "properties": {}
-    },
     "WithDirective": {
       "title": "WithDirective",
       "type": "object",

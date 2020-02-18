@@ -1,6 +1,6 @@
 {
   "name": "json-schema-from-graphql",
-  "version": "0.8.2",
+  "version": "0.8.4",
   "description": "Converts from GraphQL Schema Language into JSON Schema",
   "main": "index.js",
   "scripts": {
@@ -18,7 +18,7 @@
   "license": "MIT",
   "homepage": "https://github.com/rytyr/graphql-json-schema#readme",
   "dependencies": {
-    "graphql": "^0.10.1"
+    "graphql": "^14.6.0"
   },
   "devDependencies": {
     "jasmine": "^3.5.0"

@@ -4,7 +4,11 @@ const transform = require("./transform.js");
 module.exports = schema => {
   if (typeof schema !== "string")
     throw new TypeError("GraphQL Schema must be a string");
-  const parsedSchema = parse(schema, { noLocation: true });
+  const cleanedSchema = schema.replace(
+    /(?:type|enum|input|scalar)\s\S+\s{\s*}/gim,
+    ""
+  );
+  const parsedSchema = parse(cleanedSchema, { noLocation: true });
   // console.log(schemaWithDirective);
   // console.log(JSON.stringify(parsedSchema, null, 4));
   return transform(parsedSchema);
