@@ -8,14 +8,24 @@ enum MyEnum {
   THIRD_ITEM
 }
 
+# asdadas
+# adasda
 type query {
 # asdadas
+  field_demo: String!
 # adasda
 }
 #
 #
 type body {
 
+}
+#
+#
+type body2 {
+
+#
+#
 }
 
 type WithDirective {

@@ -4,7 +4,8 @@ const transform = require("./transform.js");
 module.exports = schema => {
   if (typeof schema !== "string")
     throw new TypeError("GraphQL Schema must be a string");
-  let cleanedSchema = schema.replace(
+  let cleanedSchema = schema.replace(/\#.*/gim, "");
+  cleanedSchema = cleanedSchema.replace(
     /(?:type|enum|input|scalar)\s\S+\s{\s*}/gim,
     ""
   );

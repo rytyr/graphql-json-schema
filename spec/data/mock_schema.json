@@ -28,7 +28,13 @@
     "query": {
       "title": "query",
       "type": "object",
-      "properties": {}
+      "properties": {
+        "field_demo": {
+          "type": "string",
+          "title": "field_demo"
+        }
+      },
+      "required": ["field_demo"]
     },
     "WithDirective": {
       "title": "WithDirective",
