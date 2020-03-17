@@ -1,7 +1,7 @@
 const parse = require("graphql/language").parse;
-const transform = require("./transform.js");
+const Transformer = require("./transform.js");
 
-module.exports = schema => {
+function transform(schema) {
   if (typeof schema !== "string")
     throw new TypeError("GraphQL Schema must be a string");
   let cleanedSchema = schema.replace(/\#.*/gim, "");
@@ -15,5 +15,10 @@ module.exports = schema => {
   const parsedSchema = parse(cleanedSchema, { noLocation: true });
   // console.log(schemaWithDirective);
   // console.log(JSON.stringify(parsedSchema, null, 4));
-  return transform(parsedSchema);
+  return Transformer.transform(parsedSchema);
+}
+
+module.exports = {
+  transform,
+  extendAjv: Transformer.extendAjv
 };

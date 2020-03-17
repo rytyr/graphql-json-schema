@@ -20,9 +20,11 @@ Arguments within @validate directive follow JSON Schema validation keywords
   integer: ["minimum", "maximum"],
   number: ["minimum", "maximum"],
   string: ["maxLength", "minLength", "pattern", "format"],
-  array: ["maxItems", "minItems", "uniqueItems"]
+  array: ["maxItems", "minItems", "uniqueItems","format"]
 }
 ```
+
+Validate `format` on array require Array of strings.
 
 ## Installation
 
@@ -33,48 +35,71 @@ npm install json-schema-from-graphql
 ## Usage
 
 ```js
-const transform = require("json-schema-from-graphql");
+const { transform, extendAjv } = require("json-schema-from-graphql");
 
 const schema = transform(`
   scalar Foo
 
-  union MyUnion = Foo | String | Float
+union MyUnion = Foo | String | Float
 
-  enum MyEnum {
-    FIRST_ITEM
-    SECOND_ITEM
-    THIRD_ITEM
-  }
+enum MyEnum {
+  FIRST_ITEM
+  SECOND_ITEM
+  THIRD_ITEM
+}
 
-  type WithDirective {
-    field_one: Int @validate(minimum: 10)
-    field_two: Int! @validate(minimum: 10, maximum: 50)
-    field_three: String! @validate(maxLength: 8, format: "date-time")
-    field_four: String @validate(minLength: 5, pattern: "[abc]+")
-    field_five: [String] @validate(uniqueItems: true, minItems: 3)
-  }
+# asdadas
+# adasda
+type query {
+# asdadas
+  field_demo: String!
+  field_demo_array: [String!] @validate(format:"uuid")
+  field_demo_array2: [String]!
+# adasda
+}
+#
+#
+type body {
 
-  type Stuff {
-    my_field: Int
-    req_field: String!
-    recursion: MoreStuff
-    custom_scalar: Foo
-    enum: MyEnum
-  }
+}
+#
+#
+type body2 {
 
-  type MoreStuff {
-    first: [Float]
-    identifier: [ID]!
-    reference: Stuff!
-    bool: Boolean!
-    union: MyUnion
-    with_params: Int
-  }
+#
+#
+}
 
-  input InputType {
-    an_int: Int!
-    a_string: String
-  }
+type WithDirective {
+  field_one: Int @validate(minimum: 10)
+  field_two: Int! @validate(minimum: 10, maximum: 50)
+  field_three: String! @validate(maxLength: 8, format: "date-time")
+  field_four: String @validate(minLength: 5, pattern: "[abc]+")
+  field_five: [String] @validate(uniqueItems: true, minItems: 3)
+}
+
+type Stuff {
+  my_field: Int
+  req_field: String!
+  recursion: MoreStuff
+  custom_scalar: Foo
+  enum: MyEnum
+}
+
+type MoreStuff {
+  first: [Float]
+  identifier: [ID]!
+  reference: Stuff!
+  bool: Boolean!
+  union: MyUnion
+  with_params: Int
+}
+
+input InputType {
+  an_int: Int!
+  a_string: String
+}
+
 
   `);
 
@@ -111,6 +136,32 @@ the code above prints the following JSON as a plain JS object:
       "type": "GRAPHQL_ENUM",
       "enum": ["FIRST_ITEM", "SECOND_ITEM", "THIRD_ITEM"]
     },
+    "query": {
+      "title": "query",
+      "type": "object",
+      "properties": {
+        "field_demo": {
+          "type": "string",
+          "title": "field_demo"
+        },
+        "field_demo_array": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "field_demo_array",
+          "ext_format": "uuid"
+        },
+        "field_demo_array2": {
+          "type": "array",
+          "items": {
+            "type": ["string", "null"]
+          },
+          "title": "field_demo_array2"
+        }
+      },
+      "required": ["field_demo", "field_demo_array2"]
+    },
     "WithDirective": {
       "title": "WithDirective",
       "type": "object",
@@ -144,7 +195,7 @@ the code above prints the following JSON as a plain JS object:
           "minItems": 3,
           "uniqueItems": true,
           "items": {
-            "type": "string"
+            "type": ["string", "null"]
           }
         }
       },
@@ -184,14 +235,14 @@ the code above prints the following JSON as a plain JS object:
         "first": {
           "type": "array",
           "items": {
-            "type": "number"
+            "type": ["number", "null"]
           },
           "title": "first"
         },
         "identifier": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": ["string", "null"]
           },
           "title": "identifier"
         },

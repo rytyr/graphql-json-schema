@@ -1,3 +1,4 @@
+const ajvFormats = require("ajv/lib/compile/formats")("fast");
 /**
  * Mapping between GQL primitive types and JSON Schema property types
  *
@@ -17,23 +18,40 @@ const ValidationKeywords = {
   array: ["maxItems", "minItems", "uniqueItems"]
 };
 
+const ExtendedKeywords = {
+  integer: [],
+  number: [],
+  string: [],
+  array: ["format"]
+};
+
 /**
  * returns a JSON schema property type for a given GQL field type
  *
  * @param      {object}  type    The GQL type object
  * @return     {Object}  the property type object or a reference to a type definition
  */
-const getPropertyType = type => {
+const getPropertyType = (type, parentType) => {
   switch (type.kind) {
     case "NonNullType":
-      return Object.assign(getPropertyType(type.type), { required: true });
+      return Object.assign(
+        getPropertyType(type.type),
+        parentType && parentType === "ListType" ? {} : { required: true }
+      );
     case "ListType":
+      // console.log(JSON.stringify(type, null, 2));
       return {
         type: "array",
-        items: getPropertyType(type.type)
+        items: getPropertyType(type.type, type.kind)
       };
     default:
       if (type.name.value in PRIMITIVES) {
+        if (parentType && parentType === "ListType") {
+          return {
+            type: [PRIMITIVES[type.name.value], "null"]
+          };
+        }
+        //otherwise
         return {
           type: PRIMITIVES[type.name.value]
         };
@@ -71,7 +89,11 @@ const convertFieldDirective = (directive, type) => {
   // only proceed for @validate
   if (directive.name.value !== "validate") return {};
   // otherwise
-  const allowedKeywords = ValidationKeywords[type];
+  const allowedKeywords = [
+    ...ValidationKeywords[type],
+    ...ExtendedKeywords[type]
+  ];
+  const additionalKeywords = ExtendedKeywords[type];
   const finalProperties = directive.arguments.reduce((acc, arg) => {
     // bypass if arguments is not valid
     if (allowedKeywords.includes(arg.name.value) === false) {
@@ -86,7 +108,10 @@ const convertFieldDirective = (directive, type) => {
       ? Math.round(castedValueType)
       : castedValueType;
     // put on accumulator
-    acc[arg.name.value] = finalValueType;
+    const accKey = additionalKeywords.includes(arg.name.value)
+      ? `ext_${arg.name.value}`
+      : arg.name.value;
+    acc[accKey] = finalValueType;
     return acc;
   }, {});
 
@@ -101,8 +126,11 @@ const convertFieldDirective = (directive, type) => {
  * @return     {Object}  a plain JS object containing the property schema or a reference to another definition
  */
 const toSchemaProperty = field => {
+  // console.log(JSON.stringify(field, null, 2));
+
   let propertyType = getPropertyType(field.type);
 
+  // process directives
   const validationProperties = field.directives.reduce(
     (acc, el) =>
       Object.assign(acc, convertFieldDirective(el, propertyType.type) || {}),
@@ -194,10 +222,39 @@ const transform = document => {
   };
 
   for (let def of definitions) {
+    // console.log(JSON.stringify(def, null, 2));
     schema.definitions[def.title] = def;
   }
 
   return schema;
 };
 
-module.exports = transform;
+module.exports.transform = transform;
+
+/**
+ * extend AJV
+ * @param {import("ajv").Ajv} ajvObj
+ */
+function extendAjv(ajvObj) {
+  if (ajvObj && ajvObj.addKeyword) {
+    // extend on ext_format
+    ajvObj.addKeyword("ext_format", {
+      validate: function(schema, data) {
+        // console.log([typeof schema, schema, data]);
+        // console.log(ajvFormats);
+        const regexCheck = ajvFormats[schema]
+          ? new RegExp(ajvFormats[schema])
+          : null;
+        // invalid if it is not string and match with regex
+        const invalidContent = data.find(
+          str => typeof str !== "string" || regexCheck.test(str) === false
+        );
+        if (invalidContent) return false;
+        return true;
+      },
+      errors: true
+    });
+  }
+}
+
+module.exports.extendAjv = extendAjv;

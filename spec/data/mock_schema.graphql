@@ -13,6 +13,8 @@ enum MyEnum {
 type query {
 # asdadas
   field_demo: String!
+  field_demo_array: [String!] @validate(format:"uuid")
+  field_demo_array2: [String]!
 # adasda
 }
 #
