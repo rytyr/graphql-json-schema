@@ -125,7 +125,7 @@ const convertFieldDirective = (directive, type) => {
  * @param      {object}  field   The GQL field object
  * @return     {Object}  a plain JS object containing the property schema or a reference to another definition
  */
-const toSchemaProperty = field => {
+const toSchemaProperty = (field) => {
   // console.log(JSON.stringify(field, null, 2));
 
   let propertyType = getPropertyType(field.type);
@@ -150,7 +150,7 @@ const toSchemaProperty = field => {
  * @param      {Object}  definition  The GQL definition object
  * @return     {Object}  A plain JS schema object
  */
-const toSchemaObject = definition => {
+const toSchemaObject = (definition) => {
   if (definition.kind === "ScalarTypeDefinition") {
     return {
       title: definition.name.value,
@@ -166,7 +166,7 @@ const toSchemaObject = definition => {
     return {
       title: definition.name.value,
       type: "GRAPHQL_ENUM",
-      enum: definition.values.map(v => v.name.value)
+      enum: definition.values.map((v) => v.name.value)
     };
   }
 
@@ -180,10 +180,10 @@ const toSchemaObject = definition => {
   for (let f of fields) properties[f.title] = f.allOf ? { allOf: f.allOf } : f;
 
   // construct required arrays
-  const required = fields.filter(f => f.required).map(f => f.title);
+  const required = fields.filter((f) => f.required).map((f) => f.title);
 
   // remove required from fields
-  fields.forEach(val => delete val.required);
+  fields.forEach((val) => delete val.required);
 
   let schemaObject = {
     title: definition.name.value,
@@ -206,11 +206,11 @@ const toSchemaObject = definition => {
  * @param      {Document}  document  The GraphQL document returned by the parse function of graphql/language
  * @return     {object}  A plain JavaScript object which conforms to JSON Schema
  */
-const transform = document => {
+const transform = (document) => {
   // ignore directives
   const definitions = document.definitions
     .filter(
-      d =>
+      (d) =>
         d.kind !== "DirectiveDefinition" &&
         d.name.value !== "StringValidationFormat"
     )
@@ -239,17 +239,17 @@ function extendAjv(ajvObj) {
   if (ajvObj && ajvObj.addKeyword) {
     // extend on ext_format
     ajvObj.addKeyword("ext_format", {
-      validate: function(schema, data) {
+      validate: function (schema, data) {
         // console.log([typeof schema, schema, data]);
         // console.log(ajvFormats);
         const regexCheck = ajvFormats[schema]
           ? new RegExp(ajvFormats[schema])
           : null;
         // invalid if it is not string and match with regex
-        const invalidContent = data.find(
-          str => typeof str !== "string" || regexCheck.test(str) === false
+        const invalidContent = data.findIndex(
+          (str) => typeof str !== "string" || regexCheck.test(str) === false
         );
-        if (invalidContent) return false;
+        if (invalidContent != -1) return false;
         return true;
       },
       errors: true
