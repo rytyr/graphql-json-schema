@@ -31,6 +31,8 @@ type body2 {
 }
 
 type WithDirective {
+  field_datetime: DateTime
+  field_json: JSON
   field_one: Int @validate(minimum: 10)
   field_two: Int! @validate(minimum: 10, maximum: 50)
   field_three: String! @validate(maxLength: 8, format: "date-time")

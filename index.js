@@ -20,5 +20,5 @@ function transform(schema) {
 
 module.exports = {
   transform,
-  extendAjv: Transformer.extendAjv
+  extendAjv: Transformer.extendAjv,
 };

@@ -8,21 +8,23 @@ const PRIMITIVES = {
   Float: "number",
   String: "string",
   Boolean: "boolean",
-  ID: "string"
+  ID: "string",
+  JSON: "object",
+  DateTime: "DateTime",
 };
 
 const ValidationKeywords = {
   integer: ["minimum", "maximum"],
   number: ["minimum", "maximum"],
   string: ["maxLength", "minLength", "pattern", "format"],
-  array: ["maxItems", "minItems", "uniqueItems"]
+  array: ["maxItems", "minItems", "uniqueItems"],
 };
 
 const ExtendedKeywords = {
   integer: [],
   number: [],
   string: [],
-  array: ["format"]
+  array: ["format"],
 };
 
 /**
@@ -42,18 +44,23 @@ const getPropertyType = (type, parentType) => {
       // console.log(JSON.stringify(type, null, 2));
       return {
         type: "array",
-        items: getPropertyType(type.type, type.kind)
+        items: getPropertyType(type.type, type.kind),
       };
     default:
       if (type.name.value in PRIMITIVES) {
         if (parentType && parentType === "ListType") {
           return {
-            type: [PRIMITIVES[type.name.value], "null"]
+            type: [PRIMITIVES[type.name.value], "null"],
+          };
+        } else if (type.name.value === "DateTime") {
+          return {
+            type: "string",
+            format: "date-time",
           };
         }
         //otherwise
         return {
-          type: PRIMITIVES[type.name.value]
+          type: PRIMITIVES[type.name.value],
         };
       } else {
         return { $ref: `#/definitions/${type.name.value}` };
@@ -91,7 +98,7 @@ const convertFieldDirective = (directive, type) => {
   // otherwise
   const allowedKeywords = [
     ...ValidationKeywords[type],
-    ...ExtendedKeywords[type]
+    ...ExtendedKeywords[type],
   ];
   const additionalKeywords = ExtendedKeywords[type];
   const finalProperties = directive.arguments.reduce((acc, arg) => {
@@ -144,6 +151,8 @@ const toSchemaProperty = (field) => {
   );
 };
 
+const DefaultScalars = ["DateTime", "Date", "JSON"];
+
 /**
  * Converts a single GQL definition into a plain JS schema object
  *
@@ -154,26 +163,25 @@ const toSchemaObject = (definition) => {
   if (definition.kind === "ScalarTypeDefinition") {
     return {
       title: definition.name.value,
-      type: "GRAPHQL_SCALAR"
+      type: "GRAPHQL_SCALAR",
     };
   } else if (definition.kind === "UnionTypeDefinition") {
     return {
       title: definition.name.value,
       type: "GRAPHQL_UNION",
-      oneOf: definition.types.map(getPropertyType)
+      oneOf: definition.types.map(getPropertyType),
     };
   } else if (definition.kind === "EnumTypeDefinition") {
     return {
       title: definition.name.value,
       type: "GRAPHQL_ENUM",
-      enum: definition.values.map((v) => v.name.value)
+      enum: definition.values.map((v) => v.name.value),
     };
   }
 
   /**
    * @type {Array}
    */
-
   const fields = definition.fields.map(toSchemaProperty);
 
   const properties = {};
@@ -188,7 +196,7 @@ const toSchemaObject = (definition) => {
   let schemaObject = {
     title: definition.name.value,
     type: "object",
-    properties
+    properties,
   };
 
   if (required.length > 0) schemaObject.required = required;
@@ -218,7 +226,7 @@ const transform = (document) => {
 
   const schema = {
     $schema: "http://json-schema.org/draft-04/schema#",
-    definitions: {}
+    definitions: {},
   };
 
   for (let def of definitions) {
@@ -252,7 +260,7 @@ function extendAjv(ajvObj) {
         if (invalidContent != -1) return false;
         return true;
       },
-      errors: true
+      errors: true,
     });
   }
 }
