@@ -9,7 +9,8 @@ Converts GraphQL DSL into JSON Schema for validation purposes
 - [x] cleanup required field in a property
 - [x] correction on structuring type definition
 - [x] implement @validate directive on **FIELD_DEFINITION** for integer, number, string and array
-- [ ] validation on Object
+- [x] validation on Object (scalar JSON)
+- [x] validation on ISO DateTime (scalar DateTime)
 
 ### Supported validation keywords
 
@@ -38,7 +39,7 @@ npm install json-schema-from-graphql
 const { transform, extendAjv } = require("json-schema-from-graphql");
 
 const schema = transform(`
-  scalar Foo
+scalar Foo
 
 union MyUnion = Foo | String | Float
 
@@ -71,6 +72,8 @@ type body2 {
 }
 
 type WithDirective {
+  field_datetime: DateTime
+  field_json: JSON
   field_one: Int @validate(minimum: 10)
   field_two: Int! @validate(minimum: 10, maximum: 50)
   field_three: String! @validate(maxLength: 8, format: "date-time")
@@ -166,6 +169,15 @@ the code above prints the following JSON as a plain JS object:
       "title": "WithDirective",
       "type": "object",
       "properties": {
+        "field_datetime": {
+          "type": "string",
+          "format": "date-time",
+          "title": "field_datetime"
+        },
+        "field_json": {
+          "type": "object",
+          "title": "field_json"
+        },
         "field_one": {
           "type": "integer",
           "title": "field_one",
